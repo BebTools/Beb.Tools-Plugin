@@ -1,0 +1,28 @@
+Beb.Tools - Delete All Collections Script
+=========================================
+
+Description:
+This script removes all user-created collections
+from the scene, leaving the Scene Collection
+and its objects intact.
+
+Usage:
+1. Add objects and collections to your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select "delete_all_collections" from the list.
+5. Click "Apply" to run the script.
+
+What It Does:
+- Identifies all user-created collections.
+- Deletes each collection, leaving objects in Scene Collection.
+
+Notes:
+- Only deletes user-created collections.
+- Preserves the default Scene Collection.
+- Objects move to Scene Collection if unlinked.
+- Deletion is permanent; use Undo if needed.
+
+Output:
+- See console message:
+  "All user-created collections deleted from the scene!"
