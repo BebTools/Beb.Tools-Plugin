@@ -21,7 +21,7 @@ def create_mesh_collections(scene=None):
     
     for mesh_obj in parent_meshes:
         print(f"Processing mesh: {mesh_obj.name}")
-        collection_name = f"{mesh_obj.name}_Collection"
+        collection_name = f"{mesh_obj.name}"
         new_collection = bpy.data.collections.new(collection_name)
         print(f"Created collection: {collection_name}")
         
