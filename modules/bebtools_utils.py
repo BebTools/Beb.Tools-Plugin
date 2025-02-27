@@ -4,7 +4,6 @@ import os
 MODULES_DIR = os.path.join(os.path.dirname(__file__), "..", "modules")
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
-
 def get_scripts(directory=SCRIPTS_DIR, expand=False):
     wm = bpy.context.window_manager
     if not expand:
@@ -24,39 +23,33 @@ def get_scripts(directory=SCRIPTS_DIR, expand=False):
             item.path = full_path
             item.is_folder = False
             items.append(item)
-    # Separate folders and scripts, then sort each alphabetically
     folders = sorted(
         [(item.name, item.path, item.is_folder) for item in wm.bebtools_scripts if item.is_folder and item.name != "Back"],
-        key=lambda x: x[0]  # Alphabetical folders
+        key=lambda x: x[0]
     )
     scripts = sorted(
         [(item.name, item.path, item.is_folder) for item in wm.bebtools_scripts if not item.is_folder],
-        key=lambda x: x[0]  # Alphabetical scripts
+        key=lambda x: x[0]
     )
-    # Rebuild list: "Back" (if present), folders, then scripts
     wm.bebtools_scripts.clear()
-    # Add "Back" first if it’s in the list (shouldn’t be here, but just in case)
     for item in items:
         if item.name == "Back":
             new_item = wm.bebtools_scripts.add()
             new_item.name = item.name
             new_item.path = item.path
             new_item.is_folder = item.is_folder
-    # Add sorted folders
     for name, path, is_folder in folders:
         new_item = wm.bebtools_scripts.add()
         new_item.name = name
         new_item.path = path
         new_item.is_folder = is_folder
-    # Add sorted scripts
     for name, path, is_folder in scripts:
         new_item = wm.bebtools_scripts.add()
         new_item.name = name
         new_item.path = path
         new_item.is_folder = is_folder
     print(f"Loaded directory: {directory}, List: {[item.name for item in wm.bebtools_scripts]}")
-    return items  # List of BebToolsScriptItem objects
-
+    return items
 
 def update_info_text(context):
     wm = context.window_manager
@@ -83,7 +76,6 @@ def update_info_text(context):
     else:
         wm.bebtools_info_lines.clear()
 
-
 def open_or_reuse_text_editor(context, text_block):
     for area in context.screen.areas:
         if area.type == 'TEXT_EDITOR':
@@ -100,6 +92,5 @@ def open_or_reuse_text_editor(context, text_block):
                 new_area.spaces.active.text = text_block
                 text_block.cursor_set(line=0, character=0)
             break
-
 
 classes = ()

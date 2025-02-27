@@ -7,23 +7,7 @@ def update_active_index(self, context):
     wm = context.window_manager
     if wm.bebtools_active_index >= 0 and wm.bebtools_active_index < len(wm.bebtools_scripts):
         script_item = wm.bebtools_scripts[wm.bebtools_active_index]
-        # Remove folder navigation—it’s popup-driven now
-        # if script_item.name == "Back":
-        #     print(f"Navigating back to: {script_item.path}")
-        #     bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=script_item.path)
-        #     wm.bebtools_active_index = -1
-        #     return
-        # elif script_item.is_folder:
-        #     parent_path = os.path.dirname(script_item.path)
-        #     print(f"Opening folder: {script_item.path}")
-        #     get_scripts(script_item.path)
-        #     back_item = wm.bebtools_scripts.add()
-        #     back_item.name = "Back"
-        #     back_item.path = parent_path
-        #     back_item.is_folder = True
-        #     wm.bebtools_scripts.move(len(wm.bebtools_scripts) - 1, 0)
-        #     wm.bebtools_active_index = -1
-    update_info_text(context)
+        update_info_text(context)
 
 class BebToolsScriptItem(bpy.types.PropertyGroup):
     name: StringProperty(name="Name")
@@ -83,6 +67,17 @@ def register_properties():
         default="",
         description="Current folder path in Beb.Tools"
     )
+    bpy.types.WindowManager.bebtools_edit_mode = BoolProperty(
+        name="Edit Mode",
+        default=False,
+        description="Toggle edit mode to show editing options",
+    )
+    # New folder mode toggle property, enabled by default
+    bpy.types.WindowManager.bebtools_folder_mode = BoolProperty(
+        name="Folder Mode",
+        default=True,
+        description="Toggle folder mode to open folders directly without popup",
+    )
 
 def unregister_properties():
     del bpy.types.WindowManager.bebtools_scripts
@@ -93,7 +88,9 @@ def unregister_properties():
     del bpy.types.WindowManager.bebtools_info_lines_index
     del bpy.types.WindowManager.bebtools_developer_mode
     del bpy.types.WindowManager.bebtools_selected_queue
-    del bpy.types.WindowManager.bebtools_current_dir  # Add this
+    del bpy.types.WindowManager.bebtools_current_dir
+    del bpy.types.WindowManager.bebtools_edit_mode
+    del bpy.types.WindowManager.bebtools_folder_mode  # Unregister new property
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

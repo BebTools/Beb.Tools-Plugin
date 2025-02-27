@@ -1,9 +1,8 @@
 import bpy
 import os
 from bpy.types import Operator
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty  # Added BoolProperty
 from .bebtools_utils import SCRIPTS_DIR
-
 
 class BEBTOOLS_OT_Queue(Operator):
     bl_idname = "bebtools.queue"
@@ -31,7 +30,6 @@ class BEBTOOLS_OT_Queue(Operator):
                 self.report({'WARNING'}, f"{script_name} is already in the queue")
         return {'FINISHED'}
 
-
 class BEBTOOLS_OT_RemoveFromQueue(Operator):
     bl_idname = "bebtools.remove_from_queue"
     bl_label = "Remove"
@@ -46,13 +44,11 @@ class BEBTOOLS_OT_RemoveFromQueue(Operator):
             if not wm.bebtools_queue:
                 wm.bebtools_queue_index = -1
             self.report({'INFO'}, f"Removed {script_name} from queue")
-            # Force redraw of the 3D View UI
             for area in context.screen.areas:
                 if area.type == 'VIEW_3D':
                     area.tag_redraw()
                     break
         return {'FINISHED'}
-
 
 class BEBTOOLS_OT_MoveUp(Operator):
     bl_idname = "bebtools.move_up"
@@ -65,7 +61,6 @@ class BEBTOOLS_OT_MoveUp(Operator):
             wm.bebtools_queue.move(wm.bebtools_queue_index, wm.bebtools_queue_index - 1)
             wm.bebtools_queue_index -= 1
         return {'FINISHED'}
-
 
 class BEBTOOLS_OT_MoveDown(Operator):
     bl_idname = "bebtools.move_down"
@@ -107,7 +102,6 @@ class BEBTOOLS_OT_SaveQueue(Operator):
         if name.endswith(".txt"):
             name = name[:-4]
         
-        # Create /queues/ folder if it doesn't exist
         queues_dir = os.path.join(os.path.dirname(__file__), "..", "queues")
         os.makedirs(queues_dir, exist_ok=True)
         
@@ -126,7 +120,6 @@ class BEBTOOLS_OT_SaveQueue(Operator):
             return {'CANCELLED'}
         
         return {'FINISHED'}
-
 
 class BEBTOOLS_OT_LoadQueue(Operator):
     bl_idname = "bebtools.load_queue"
@@ -150,7 +143,6 @@ class BEBTOOLS_OT_LoadQueue(Operator):
             self.report({'WARNING'}, "Selected file does not exist")
             return {'CANCELLED'}
 
-        # Read script names from the .txt file
         script_names = []
         try:
             with open(self.filepath, "r") as f:
@@ -163,16 +155,14 @@ class BEBTOOLS_OT_LoadQueue(Operator):
             self.report({'WARNING'}, "Queue file is empty")
             return {'CANCELLED'}
 
-        # Search for scripts in /scripts/ and subfolders
         scripts_dir = SCRIPTS_DIR
         script_paths = {}
         for root, _, files in os.walk(scripts_dir):
             for file in files:
                 if file.endswith(".py") and not file.startswith("__"):
-                    script_name = file[:-3]  # Remove .py extension
+                    script_name = file[:-3]
                     script_paths[script_name] = os.path.join(root, file)
 
-        # Load matching scripts into the queue
         wm.bebtools_queue.clear()
         missing_scripts = []
         for name in script_names:
@@ -184,7 +174,7 @@ class BEBTOOLS_OT_LoadQueue(Operator):
                 missing_scripts.append(name)
 
         if wm.bebtools_queue:
-            wm.bebtools_queue_index = 0  # Select the first item
+            wm.bebtools_queue_index = 0
             self.report({'INFO'}, f"Loaded queue from {os.path.basename(self.filepath)}")
             if missing_scripts:
                 self.report({'WARNING'}, f"Could not find scripts: {', '.join(missing_scripts)}")
@@ -216,7 +206,6 @@ class BEBTOOLS_OT_RunSelected(Operator):
                 self.report({'ERROR'}, f"Error running {script_item.name}: {str(e)}")
         else:
             self.report({'WARNING'}, "No script selected in queue")
-        # Redraw to ensure UI updates
         for area in context.screen.areas:
             if area.type == 'VIEW_3D':
                 area.tag_redraw()
@@ -237,7 +226,7 @@ class BEBTOOLS_OT_LoadSelectedQueue(Operator):
             self.report({'WARNING'}, "No queue selected")
         return {'FINISHED'}
 
-class BEBTOOLS_OT_ClearQueue(Operator):  # Reuse existing name but update for top row
+class BEBTOOLS_OT_ClearQueue(Operator):
     bl_idname = "bebtools.clear_queue"
     bl_label = "Clear"
     bl_description = "Remove all scripts from the queue"
@@ -275,11 +264,9 @@ class BEBTOOLS_OT_DeleteQueue(Operator):
             try:
                 os.remove(queue_path)
                 self.report({'INFO'}, f"Deleted queue: {os.path.basename(queue_path)[:-4]}")
-                # Clear the queue if it’s the one currently loaded
                 if wm.bebtools_queue and wm.bebtools_queue[0].path.startswith(os.path.dirname(queue_path)):
                     wm.bebtools_queue.clear()
                     wm.bebtools_queue_index = -1
-                # Redraw to update the dropdown
                 for area in context.screen.areas:
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
@@ -287,6 +274,69 @@ class BEBTOOLS_OT_DeleteQueue(Operator):
             except Exception as e:
                 self.report({'ERROR'}, f"Error deleting queue: {str(e)}")
                 return {'CANCELLED'}
+        return {'FINISHED'}
+
+# New operator to queue all scripts in a folder
+class BEBTOOLS_OT_QueueFolder(Operator):
+    bl_idname = "bebtools.queue_folder"
+    bl_label = "Queue Folder"
+    bl_description = "Add all scripts in the selected folder to the queue"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    recursive: BoolProperty(
+        name="Include Subfolders",
+        default=True,
+        description="Queue scripts from subfolders as well"
+    )
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        if wm.bebtools_active_index >= 0 and wm.bebtools_active_index < len(wm.bebtools_scripts):
+            script_item = wm.bebtools_scripts[wm.bebtools_active_index]
+            if not script_item.is_folder or script_item.name == "Back":
+                self.report({'WARNING'}, "Select a folder to queue")
+                return {'CANCELLED'}
+            return context.window_manager.invoke_props_dialog(self)
+        self.report({'WARNING'}, "No folder selected")
+        return {'CANCELLED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "recursive")
+
+    def execute(self, context):
+        wm = context.window_manager
+        if wm.bebtools_active_index >= 0 and wm.bebtools_active_index < len(wm.bebtools_scripts):
+            folder_item = wm.bebtools_scripts[wm.bebtools_active_index]
+            if not folder_item.is_folder or folder_item.name == "Back":
+                self.report({'WARNING'}, "Select a folder to queue")
+                return {'CANCELLED'}
+            folder_path = folder_item.path
+            # Use os.walk for recursive, os.listdir for non-recursive
+            if self.recursive:
+                for root, _, files in os.walk(folder_path):
+                    for file in sorted(files):  # Sort for consistent order
+                        if file.endswith(".py") and not file.startswith("__"):
+                            script_name = file[:-3]
+                            script_path = os.path.join(root, file)
+                            if not any(item.name == script_name for item in wm.bebtools_queue):
+                                item = wm.bebtools_queue.add()
+                                item.name = script_name
+                                item.path = script_path
+            else:
+                for file in sorted(os.listdir(folder_path)):
+                    full_path = os.path.join(folder_path, file)
+                    if os.path.isfile(full_path) and file.endswith(".py") and not file.startswith("__"):
+                        script_name = file[:-3]
+                        if not any(item.name == script_name for item in wm.bebtools_queue):
+                            item = wm.bebtools_queue.add()
+                            item.name = script_name
+                            item.path = full_path
+            wm.bebtools_queue_index = len(wm.bebtools_queue) - 1
+            self.report({'INFO'}, f"Queued all scripts from '{folder_item.name}'{' and subfolders' if self.recursive else ''}")
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
         return {'FINISHED'}
 
 classes = (
@@ -300,4 +350,5 @@ classes = (
     BEBTOOLS_OT_RunSelected,
     BEBTOOLS_OT_LoadSelectedQueue,
     BEBTOOLS_OT_DeleteQueue,
+    BEBTOOLS_OT_QueueFolder,  # Register new operator
 )
