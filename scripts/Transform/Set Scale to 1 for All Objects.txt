@@ -10,8 +10,8 @@ Usage:
 1. Add mesh objects (e.g., cubes) to your scene.
 2. Open the N-Panel (press N).
 3. Go to the "Beb.Tools" tab.
-4. Select "one_all_scales" from the list.
-5. Click "Apply" to run the script.
+4. Select this script from the list.
+5. Click "Run" to run the script.
 
 What It Does:
 - Iterates through all mesh objects in the scene.

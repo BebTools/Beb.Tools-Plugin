@@ -10,8 +10,8 @@ Usage:
 1. Import objects with materials into your scene.
 2. Open the N-Panel (press N).
 3. Go to the "Beb.Tools" tab.
-4. Select "deduplicate_materials_and_images" from list.
-5. Click "Apply" to run the script.
+4. Select this script from the list.
+5. Click "Run" to run the script.
 
 What It Does:
 - Finds duplicate materials (e.g., apple.001) and images (e.g., apple.png.001).

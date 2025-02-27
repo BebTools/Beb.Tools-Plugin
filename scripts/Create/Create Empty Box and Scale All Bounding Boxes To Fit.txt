@@ -11,8 +11,8 @@ Usage:
 1. Add empty cubes to your scene.
 2. Open the N-Panel (press N).
 3. Go to the "Beb.Tools" tab.
-4. Select "scale_empty_cubes_to_bbox" from list.
-5. Click "Apply" to run the script.
+4. Select this script from the list.
+5. Click "Run" to run the script.
 
 What It Does:
 - Adds a BBox_Scaler empty cube if not present.

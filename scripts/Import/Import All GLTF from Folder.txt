@@ -10,8 +10,8 @@ scene.
 Usage:
 1. Open the N-Panel (press N).
 2. Go to the "Beb.Tools" tab.
-3. Select "import_all_gltf" from the list.
-4. Click "Apply" to open the file browser.
+3. Select this script from the list.
+4. Click "Run" to open the file browser.
 5. Choose a directory and confirm.
 
 What It Does:

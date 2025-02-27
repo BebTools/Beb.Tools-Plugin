@@ -10,8 +10,8 @@ Usage:
 1. Add cameras to your scene.
 2. Open the N-Panel (press N).
 3. Go to the "Beb.Tools" tab.
-4. Select "delete_all_cameras" from the list.
-5. Click "Apply" to run the script.
+4. Select this script from the list.
+5. Click "Run" to run the script.
 
 What It Does:
 - Identifies all camera objects in the scene.

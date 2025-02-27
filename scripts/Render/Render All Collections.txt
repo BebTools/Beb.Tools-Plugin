@@ -10,8 +10,8 @@ Usage:
 1. Add collections with objects to your scene.
 2. Open the N-Panel (press N).
 3. Go to the "Beb.Tools" tab.
-4. Select "render_collections" from the list.
-5. Click "Apply" to open file browser and render.
+4. Select this script from the list.
+5. Click "Run" to open file browser and render.
 
 What It Does:
 - Opens a file browser to select output directory.
