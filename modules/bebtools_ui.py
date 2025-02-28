@@ -2,28 +2,33 @@ import bpy
 import os
 from bpy.types import Panel, UIList, Operator
 from bpy.props import StringProperty, CollectionProperty
-from .bebtools_utils import get_scripts, update_info_text
+from .bebtools_utils import SCRIPTS_DIR, get_scripts, update_info_text
 
 class BEBTOOLS_UL_ScriptList(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         row = layout.row(align=False)
         row.alignment = 'LEFT'
         wm = context.window_manager
-        if item.name == "Back":
-            op = row.operator("bebtools.navigate_back", text="Back", icon="BACK", emboss=False)
-            op.index = index
-        elif item.is_folder:
-            if wm.bebtools_folder_mode:
-                # Directly open the folder when folder mode is enabled
-                op = row.operator("bebtools.open_folder_contents", text=item.name, icon="FILE_FOLDER", emboss=False)
-                op.index = index
-            else:
-                # Show popup when folder mode is disabled
-                op = row.operator("bebtools.folder_context_menu", text=item.name, icon="FILE_FOLDER", emboss=False)
-                op.index = index
-        else:
+        
+        if wm.bebtools_search_active:
+            # In search mode, only show scripts as clickable items
             op = row.operator("bebtools.script_context_menu", text=item.name, icon="FILE_SCRIPT", emboss=False)
             op.index = index
+        else:
+            # Normal folder browsing mode
+            if item.name == "Back":
+                op = row.operator("bebtools.navigate_back", text="Back", icon="BACK", emboss=False)
+                op.index = index
+            elif item.is_folder:
+                if wm.bebtools_folder_mode:
+                    op = row.operator("bebtools.open_folder_contents", text=item.name, icon="FILE_FOLDER", emboss=False)
+                    op.index = index
+                else:
+                    op = row.operator("bebtools.folder_context_menu", text=item.name, icon="FILE_FOLDER", emboss=False)
+                    op.index = index
+            else:
+                op = row.operator("bebtools.script_context_menu", text=item.name, icon="FILE_SCRIPT", emboss=False)
+                op.index = index
 
 class BEBTOOLS_OT_ScriptContextMenu(Operator):
     bl_idname = "bebtools.script_context_menu"
@@ -225,7 +230,7 @@ class BEBTOOLS_PT_Panel(Panel):
             layout.operator("bebtools.init_scripts", text="Load Scripts")
             wm.bebtools_current_dir = SCRIPTS_DIR
         else:
-            # Parent row to hold both sections
+            # Parent row to hold all sections
             parent_row = layout.row(align=True)
             
             # Left-aligned row for toggle buttons
@@ -234,7 +239,11 @@ class BEBTOOLS_PT_Panel(Panel):
             left_row.operator("bebtools.toggle_folder_mode", text="", icon="RESTRICT_SELECT_OFF", depress=wm.bebtools_folder_mode)
             left_row.operator("bebtools.toggle_edit_mode", text="", icon="GREASEPENCIL", depress=wm.bebtools_edit_mode)
             
-            # Right-aligned row for remaining buttons
+            # Center row for search field (X is now inside)
+            center_row = parent_row.row(align=True)
+            center_row.prop(wm, "bebtools_search_query", text="", icon="VIEWZOOM", emboss=True)
+            
+            # Right-aligned row for action buttons
             right_row = parent_row.row(align=True)
             right_row.alignment = 'RIGHT'
             right_row.operator("bebtools.import_script", text="", icon="FILE_FOLDER")
@@ -244,6 +253,7 @@ class BEBTOOLS_PT_Panel(Panel):
             right_row.operator("bebtools.init_scripts", text="", icon="FILE_REFRESH")
             right_row.operator("bebtools.open_scripts_folder", text="", icon="FOLDER_REDIRECT")
             
+            # Script list
             layout.template_list(
                 "BEBTOOLS_UL_ScriptList",
                 "bebtools_script_list",
@@ -252,7 +262,7 @@ class BEBTOOLS_PT_Panel(Panel):
                 wm,
                 "bebtools_active_index",
                 rows=10
-            )
+            )     
 
 class BEBTOOLS_UL_QueueList(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -321,6 +331,71 @@ class BEBTOOLS_PT_QueuePanel(Panel):
         row.operator("bebtools.multi_run", text="Run All", icon="PLAY")
         row.operator("bebtools.clear_queue", text="", icon="X")
 
+class BEBTOOLS_OT_SearchScripts(Operator):
+    bl_idname = "bebtools.search_scripts"
+    bl_label = "Search Scripts"
+    bl_description = "Search for scripts across all folders and subfolders"
+
+    def execute(self, context):
+        wm = context.window_manager
+        query = wm.bebtools_search_query.strip().lower()
+        
+        # If query is empty, restore the current directory
+        if not query:
+            if wm.bebtools_search_active:
+                bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=wm.bebtools_current_dir)
+                wm.bebtools_search_active = False
+                self.report({'INFO'}, "Returned to folder browsing")
+            return {'FINISHED'}
+
+        # Perform recursive search
+        wm.bebtools_scripts.clear()
+        matches = []
+        for root, _, files in os.walk(SCRIPTS_DIR):
+            for file in files:
+                if file.endswith(".py") and not file.startswith("__"):
+                    script_name = file[:-3]  # Just the name without .py
+                    if query in script_name.lower():
+                        full_path = os.path.join(root, file)
+                        matches.append((script_name, full_path, False))  # Use script_name only
+
+        # Sort matches alphabetically
+        matches.sort(key=lambda x: x[0])
+
+        # Populate script list with results
+        for name, path, is_folder in matches:
+            item = wm.bebtools_scripts.add()
+            item.name = name  # Only the script name, no path
+            item.path = path  # Full path still stored for operations
+            item.is_folder = is_folder
+
+        wm.bebtools_search_active = True
+        wm.bebtools_active_index = -1
+        update_info_text(context)
+        self.report({'INFO'}, f"Found {len(matches)} script(s) matching '{query}'")
+        
+        # Redraw the UI
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                area.tag_redraw()
+        return {'FINISHED'}
+
+class BEBTOOLS_OT_ClearSearch(Operator):
+    bl_idname = "bebtools.clear_search"
+    bl_label = "Clear Search"
+    bl_description = "Clear the search query and return to folder browsing"
+
+    def execute(self, context):
+        wm = context.window_manager
+        wm.bebtools_search_query = ""  # Clear the search field
+        if wm.bebtools_search_active:
+            bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=wm.bebtools_current_dir)
+            wm.bebtools_search_active = False
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                area.tag_redraw()
+        return {'FINISHED'}
+
 class BEBTOOLS_PT_InfoPanel(Panel):
     bl_label = ""
     bl_idname = "BEBTOOLS_PT_info_panel"
@@ -382,5 +457,7 @@ classes = (
     BEBTOOLS_OT_OpenScriptsFolder,
     BEBTOOLS_OT_ImportScript,
     BEBTOOLS_OT_ToggleEditMode,
-    BEBTOOLS_OT_ToggleFolderMode,  # Register new operator
+    BEBTOOLS_OT_ToggleFolderMode,
+    BEBTOOLS_OT_SearchScripts,
+    BEBTOOLS_OT_ClearSearch,
 )

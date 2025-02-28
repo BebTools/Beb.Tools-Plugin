@@ -78,6 +78,18 @@ def register_properties():
         default=True,
         description="Toggle folder mode to open folders directly without popup",
     )
+    bpy.types.WindowManager.bebtools_search_query = StringProperty(
+        name="Search Scripts",
+        default="",
+        description="Search for scripts across all folders",
+        update=lambda self, context: bpy.ops.bebtools.search_scripts('INVOKE_DEFAULT'),  # Trigger search on any change
+        search=lambda self, context, edit_text: None  # Enables the "X" inside the field (no autocomplete needed)
+    )
+    bpy.types.WindowManager.bebtools_search_active = BoolProperty(
+        name="Search Active",
+        default=False,
+        description="Indicates if the script list is showing search results"
+    )
 
 def unregister_properties():
     del bpy.types.WindowManager.bebtools_scripts
@@ -90,7 +102,9 @@ def unregister_properties():
     del bpy.types.WindowManager.bebtools_selected_queue
     del bpy.types.WindowManager.bebtools_current_dir
     del bpy.types.WindowManager.bebtools_edit_mode
-    del bpy.types.WindowManager.bebtools_folder_mode  # Unregister new property
+    del bpy.types.WindowManager.bebtools_folder_mode
+    del bpy.types.WindowManager.bebtools_search_query
+    del bpy.types.WindowManager.bebtools_search_active
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

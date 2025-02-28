@@ -10,16 +10,28 @@ class BEBTOOLS_OT_MoveTo(Operator):
     bl_description = "Move the selected script to another folder"
     bl_options = {'REGISTER', 'INTERNAL'}
 
-    # Dynamic folder list with "Scripts" instead of "Root (/scripts/)"
-    destination: EnumProperty(
+    def get_move_options(self, context):
+        wm = context.window_manager
+        current_dir = wm.bebtools_current_dir if wm.bebtools_current_dir else SCRIPTS_DIR
+        parent_dir = os.path.dirname(current_dir)
+        options = []
+
+        # Add subfolders of current directory
+        for d in sorted(os.listdir(current_dir)):
+            full_path = os.path.join(current_dir, d)
+            if os.path.isdir(full_path):
+                options.append((full_path, d, f"Move to {d} (current level)"))
+
+        # Add parent directory (one level up), if not at root
+        if current_dir != SCRIPTS_DIR:
+            options.append((parent_dir, "Scripts" if parent_dir == SCRIPTS_DIR else os.path.basename(parent_dir), f"Move up to {os.path.basename(parent_dir)}"))
+
+        return options if options else [(SCRIPTS_DIR, "Scripts", "Move to /scripts/")]
+
+    destination: bpy.props.EnumProperty(
         name="Destination Folder",
         description="Choose a folder to move the script to",
-        items=lambda self, context: [
-            (SCRIPTS_DIR, "Scripts", "Move to the main scripts folder")] + [
-            (os.path.join(SCRIPTS_DIR, d), d, f"Move to {d}") 
-            for d in sorted(os.listdir(SCRIPTS_DIR)) 
-            if os.path.isdir(os.path.join(SCRIPTS_DIR, d))
-        ]
+        items=get_move_options
     )
 
     def invoke(self, context, event):
@@ -60,13 +72,12 @@ class BEBTOOLS_OT_MoveTo(Operator):
                 if os.path.exists(src_txt):
                     os.rename(src_txt, dest_txt)
                 self.report({'INFO'}, f"Moved '{script_item.name}' to {dest_dir}")
-                bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT')
+                bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=wm.bebtools_current_dir)
                 wm.bebtools_active_index = -1
                 update_info_text(context)
             except Exception as e:
                 self.report({'ERROR'}, f"Error moving '{script_item.name}': {str(e)}")
                 return {'CANCELLED'}
-        
         return {'FINISHED'}
 
 class BEBTOOLS_OT_EditScript(Operator):
@@ -528,15 +539,28 @@ class BEBTOOLS_OT_MoveFolder(Operator):
     bl_description = "Move the selected folder to another location"
     bl_options = {'REGISTER', 'INTERNAL'}
 
-    destination: EnumProperty(
+    def get_move_options(self, context):
+        wm = context.window_manager
+        current_dir = wm.bebtools_current_dir if wm.bebtools_current_dir else SCRIPTS_DIR
+        parent_dir = os.path.dirname(current_dir)
+        options = []
+
+        # Add subfolders of current directory
+        for d in sorted(os.listdir(current_dir)):
+            full_path = os.path.join(current_dir, d)
+            if os.path.isdir(full_path):
+                options.append((full_path, d, f"Move to {d} (current level)"))
+
+        # Add parent directory (one level up), if not at root
+        if current_dir != SCRIPTS_DIR:
+            options.append((parent_dir, "Scripts" if parent_dir == SCRIPTS_DIR else os.path.basename(parent_dir), f"Move up to {os.path.basename(parent_dir)}"))
+
+        return options if options else [(SCRIPTS_DIR, "Scripts", "Move to /scripts/")]
+
+    destination: bpy.props.EnumProperty(
         name="Destination Folder",
-        description="Choose a folder to move to",
-        items=lambda self, context: [
-            (SCRIPTS_DIR, "Scripts", "Move to the main scripts folder")] + [
-            (os.path.join(SCRIPTS_DIR, d), d, f"Move to {d}")
-            for d in sorted(os.listdir(SCRIPTS_DIR))
-            if os.path.isdir(os.path.join(SCRIPTS_DIR, d))
-        ]
+        description="Choose a folder to move the folder to",
+        items=get_move_options
     )
 
     def invoke(self, context, event):
@@ -573,7 +597,7 @@ class BEBTOOLS_OT_MoveFolder(Operator):
             try:
                 os.rename(src_path, dest_path)
                 self.report({'INFO'}, f"Moved folder to {dest_dir}")
-                bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT')
+                bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=wm.bebtools_current_dir)
                 wm.bebtools_active_index = -1
                 update_info_text(context)
             except Exception as e:
