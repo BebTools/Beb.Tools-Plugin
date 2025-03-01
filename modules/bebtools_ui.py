@@ -222,6 +222,10 @@ class BEBTOOLS_PT_Panel(Panel):
     bl_region_type = 'UI'
     bl_category = "Beb.Tools"
 
+    def draw_header(self, context):
+        layout = self.layout
+        layout.label(text="", icon="TOOL_SETTINGS")
+
     def draw(self, context):
         layout = self.layout
         wm = context.window_manager
@@ -262,7 +266,7 @@ class BEBTOOLS_PT_Panel(Panel):
                 wm,
                 "bebtools_active_index",
                 rows=10
-            )     
+            )
 
 class BEBTOOLS_UL_QueueList(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
